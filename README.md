@@ -1,6 +1,6 @@
 # Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers
 
-This is a code repository for the paper [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.xxxxx) (Lau and Su, 2026), which proposes a family of *equivariant optimizers* for matrix-valued parameters in neural networks based on a principle based on geometry, symmetry and equivariance.
+This is a code repository for the paper [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.18106) (Lau and Su, 2026), which proposes a family of *equivariant optimizers* for matrix-valued parameters in neural networks based on a principle based on geometry, symmetry and equivariance.
 
 
 ## Overview
@@ -291,12 +291,12 @@ If you find this repository useful for your research, please consider citing our
   title={Symmetry-Compatible Principle for Optimizer Design: Embeddings, {LM} Heads, {SwiGLU MLPs}, and {MoE} Routers},
   author={Lau, Tim Tsz-Kit and Weijie Su},
   year={2026},
-  journal={arXiv preprint arXiv:2605.xxxxx}
+  journal={arXiv preprint arXiv:2605.18106}
 }
 ```
 
 ## References
-- Lau, Tim Tsz-Kit, and Weijie Su. [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.xxxxx). *arXiv preprint arXiv:2605.xxxxx*, 2026.
+- Lau, Tim Tsz-Kit, and Weijie Su. [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.xxxxx). *arXiv preprint arXiv:2605.18106*, 2026.
 
 -  Lau, Tim Tsz-Kit, Qi Long, and Weijie Su. [PolarGrad: A class of matrix-gradient optimizers from a unifying preconditioning perspective](https://arxiv.org/abs/2505.21799). *arXiv preprint arXiv:2505.21799*, 2025. 
 
