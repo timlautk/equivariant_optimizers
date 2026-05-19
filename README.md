@@ -225,8 +225,8 @@ torchrun --standalone --nproc_per_node=8 train_gemma3_1b.py --data_dir=fineweb_e
 ```
 
 ### OLMoE-1B-7B-Style Pre-training
-![OLMoE-1B-7B-style pre-training](fig/olmoe_1.png "OLMoE-1B-7B-style pre-training")
 Figure 5 in paper
+![OLMoE-1B-7B-style pre-training](fig/olmoe_1.png "OLMoE-1B-7B-style pre-training")
 
 ```bash
 ## RowNormM for embedding, LM head and router.
@@ -266,8 +266,8 @@ torchrun --standalone --nproc_per_node=8 train_olmoe.py --data_dir=fineweb_edu_1
 ```
 
 ### Downsized gpt-oss Pre-training
-<center><img src="fig/gpt_oss_2.png" alt="Downsized gpt-oss pre-training" width="800"></center>
 Figure 2 in paper 
+<center><img src="fig/gpt_oss_2.png" alt="Downsized gpt-oss pre-training" width="800"></center>
 
 ```bash
 ## RowNormM for embedding, LM head and router.
