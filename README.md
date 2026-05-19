@@ -84,7 +84,15 @@ For pre-training experiments, you can run the following commands to start the tr
 The training scripts will log the training progress and results to TensorBoard, which you can visualize using the `tensorboard` command in your terminal. 
 
 
-### Qwen3-0.6B
+### Qwen3-0.6B-Style Pre-training
+Figure 3 in paper shows the training curves for the Qwen3-0.6B-style pre-training runs comparing different optimizer configurations. The following commands reproduce the training runs for each optimizer configuration as shown in the figure.
+
+![Qwen3-0.6B-style pre-training](fig/qwen3_1.png "Qwen3-0.6B-style pre-training")
+(a) SwiGLU MLP projection matrices use Muon, equivalently RightPolarGradM with $\alpha = 0$.
+
+![Qwen3-0.6B-style pre-training](fig/qwen3_swiglu.png "Qwen3-0.6B-style pre-training")
+(b) SwiGLU MLP projection matrices use HybridPolarGradM with a row-norm/right-spectral composition.
+
 ```bash
 ## RowNormM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
 torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
@@ -146,7 +154,16 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 ```
 
-### Gemma 3 1B
+### Gemma 3 1B-Style Pre-training
+Part of Figure 4 in paper
+<center><img src="fig/gemma3_2.png" alt="Gemma 3 1B-style pre-training" width="400"></center>
+
+(a) SwiGLU MLP projection matrices use Muon, equivalently RightPolarGradM with $\alpha = 0$.
+
+<center><img src="fig/gemma3_swiglu_2.png" alt="Gemma 3 1B-style pre-training" width="400"></center>
+
+(b) SwiGLU MLP projection matrices use HybridPolarGradM with a row-norm/right-spectral composition.
+
 ```bash
 ## RowNormM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
 torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fineweb_edu_10B_gemma3 \
@@ -207,7 +224,10 @@ torchrun --standalone --nproc_per_node=8 train_gemma3_1b.py --data_dir=fineweb_e
 --inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42
 ```
 
-### OLMoE-1B-7B
+### OLMoE-1B-7B-Style Pre-training
+![OLMoE-1B-7B-style pre-training](fig/olmoe_1.png "OLMoE-1B-7B-style pre-training")
+Figure 5 in paper
+
 ```bash
 ## RowNormM for embedding, LM head and router.
 torchrun --standalone --nproc_per_node=8 train_olmoe.py --data_dir=fineweb_edu_10B_OLMoE \
@@ -245,7 +265,10 @@ torchrun --standalone --nproc_per_node=8 train_olmoe.py --data_dir=fineweb_edu_1
 --inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False
 ```
 
-### Downsized gpt-oss
+### Downsized gpt-oss Pre-training
+<center><img src="fig/gpt_oss_2.png" alt="Downsized gpt-oss pre-training" width="800"></center>
+Figure 2 in paper 
+
 ```bash
 ## RowNormM for embedding, LM head and router.
 torchrun --standalone --nproc_per_node=8 train_gpt-oss.py --data_dir=fineweb_edu_10B_gpt-oss \
