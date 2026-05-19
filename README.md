@@ -296,7 +296,7 @@ If you find this repository useful for your research, please consider citing our
 ```
 
 ## References
-- Lau, Tim Tsz-Kit, and Weijie Su. [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.xxxxx). *arXiv preprint arXiv:2605.18106*, 2026.
+- Lau, Tim Tsz-Kit, and Weijie Su. [Symmetry-Compatible Principle for Optimizer Design: Embeddings, LM Heads, SwiGLU MLPs, and MoE Routers](https://arxiv.org/abs/2605.18106). *arXiv preprint arXiv:2605.18106*, 2026.
 
 -  Lau, Tim Tsz-Kit, Qi Long, and Weijie Su. [PolarGrad: A class of matrix-gradient optimizers from a unifying preconditioning perspective](https://arxiv.org/abs/2505.21799). *arXiv preprint arXiv:2505.21799*, 2025. 
 
