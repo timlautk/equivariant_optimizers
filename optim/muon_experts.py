@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import torch
 
-from .invsqrt import symmetric_matrix_invsqrt
 from .utils import decoupled_weight_decay_
 
 
 # =========================
-# Batched MoE expert Muon / polar optimizer
+# MuonHeads-style batched MoE expert Muon / Polar Express optimizer
 # =========================
 
 _SUPPORTED_EXPERT_LAYOUTS = {
@@ -18,39 +17,86 @@ _SUPPORTED_EXPERT_LAYOUTS = {
 }
 
 
-def _expert_orient(x: torch.Tensor, expert_layout: str) -> torch.Tensor:
-    """Convert a 3D expert tensor into batched matrices [..., rows, cols]."""
+def _polar_express_stack(g: torch.Tensor) -> torch.Tensor:
+    """Apply PolarExpressHeads independently to a stack of expert matrices."""
+    from .polar_express import PolarExpressHeads
+
+    if g.ndim != 3:
+        raise ValueError(f"Expected a 3D expert stack [E, rows, cols], got {tuple(g.shape)}")
+    return torch.stack(
+        [PolarExpressHeads(g[e], compute_hermitian=False) for e in range(g.shape[0])],
+        dim=0,
+    )
+
+
+def _muon_scale_for_expert_layout(g: torch.Tensor, expert_layout: str) -> float:
+    """MuonHeadsPolarExpress-style scale max(1, rows / cols) ** 0.5."""
     if expert_layout == "row":
-        return x
+        rows, cols = g.shape[-2], g.shape[-1]
+    elif expert_layout == "col":
+        rows, cols = g.shape[-1], g.shape[-2]
+    elif expert_layout == "gpt_oss_gate_up_pair":
+        # HF GPT-OSS: [E, hidden_size, 2 * intermediate_size].
+        # Split into gate/up matrices of shape [E, hidden_size, intermediate_size].
+        rows, cols = g.shape[-2], g.shape[-1] // 2
+    elif expert_layout == "olmoe_gate_up_pair":
+        # HF OLMoE: [E, 2 * intermediate_size, hidden_size].
+        # Split into gate/up matrices of shape [E, intermediate_size, hidden_size].
+        rows, cols = g.shape[-2] // 2, g.shape[-1]
+    else:
+        raise ValueError(
+            f"Unknown expert_layout={expert_layout}. "
+            f"Expected one of {sorted(_SUPPORTED_EXPERT_LAYOUTS)}."
+        )
+    return max(1.0, float(rows) / float(cols)) ** 0.5
+
+
+def _polarize_expert_update_like_muon_heads(g: torch.Tensor, expert_layout: str) -> torch.Tensor:
+    """
+    Polarize a 3D MoE expert tensor using the same convention as
+    MuonHeadsPolarExpress: no nuclear-norm scaling and no alpha.
+
+    For fused gate/up expert tensors, the gate and up branches are polarized
+    separately, matching MuonHeadsPolarExpress.
+    """
+    if g.ndim != 3:
+        raise ValueError(f"Expected a 3D MoE expert tensor, got {tuple(g.shape)}")
+
+    if expert_layout == "row":
+        return _polar_express_stack(g)
 
     if expert_layout == "col":
-        return x.transpose(-1, -2).contiguous()
+        return _polar_express_stack(g.transpose(-1, -2).contiguous()).transpose(-1, -2).contiguous()
 
     if expert_layout == "gpt_oss_gate_up_pair":
-        # HF GPT-OSS: [E, d, 2*r] with interleaved gate/up columns.
-        # Convert to [E, r, 2*d], so each intermediate neuron is a row.
-        if x.ndim != 3 or x.shape[-1] % 2 != 0:
+        # GPT-OSS expert gate_up_proj has shape [E, H, 2I] and is interleaved:
+        # gate = [..., ::2], up = [..., 1::2].
+        if g.shape[-1] % 2 != 0:
             raise ValueError(
-                "expert_layout='gpt_oss_gate_up_pair' expects [E, d, 2*r], "
-                f"got {tuple(x.shape)}"
+                "expert_layout='gpt_oss_gate_up_pair' expects last dimension 2*I, "
+                f"got {tuple(g.shape)}"
             )
-        E, d, two_r = x.shape
-        r = two_r // 2
-        return x.view(E, d, r, 2).permute(0, 2, 1, 3).contiguous().view(E, r, 2 * d)
+        gate = g[..., ::2].contiguous()
+        up = g[..., 1::2].contiguous()
+        gate_u = _polar_express_stack(gate)
+        up_u = _polar_express_stack(up)
+        out = torch.empty_like(g)
+        out[..., ::2] = gate_u
+        out[..., 1::2] = up_u
+        return out
 
     if expert_layout == "olmoe_gate_up_pair":
-        # HF OLMoE: [E, 2*r, d] with gate and up concatenated along rows.
-        # Convert to [E, r, 2*d], so each intermediate neuron is a row.
-        if x.ndim != 3 or x.shape[1] % 2 != 0:
+        # OLMoE expert gate_up_proj has shape [E, 2I, H] and is concatenated:
+        # gate = [:, :I, :], up = [:, I:, :].
+        if g.shape[-2] % 2 != 0:
             raise ValueError(
-                "expert_layout='olmoe_gate_up_pair' expects [E, 2*r, d], "
-                f"got {tuple(x.shape)}"
+                "expert_layout='olmoe_gate_up_pair' expects second-to-last dimension 2*I, "
+                f"got {tuple(g.shape)}"
             )
-        E, two_r, d = x.shape
-        r = two_r // 2
-        gate = x[:, :r, :]
-        up = x[:, r:, :]
-        return torch.stack((gate, up), dim=-1).contiguous().view(E, r, 2 * d)
+        intermediate = g.shape[-2] // 2
+        gate = g[:, :intermediate, :].contiguous()
+        up = g[:, intermediate:, :].contiguous()
+        return torch.cat([_polar_express_stack(gate), _polar_express_stack(up)], dim=1)
 
     raise ValueError(
         f"Unknown expert_layout={expert_layout}. "
@@ -58,46 +104,22 @@ def _expert_orient(x: torch.Tensor, expert_layout: str) -> torch.Tensor:
     )
 
 
-def _expert_unorient(u: torch.Tensor, expert_layout: str, orig_shape: torch.Size) -> torch.Tensor:
-    """Inverse of _expert_orient."""
-    if expert_layout == "row":
-        return u.reshape(orig_shape)
+class BatchedExpertMuonPolarExpress(torch.optim.Optimizer):
+    """MuonHeadsPolarExpress-style optimizer for 3D MoE expert tensors.
 
-    if expert_layout == "col":
-        return u.transpose(-1, -2).contiguous().reshape(orig_shape)
+    This is intended for the routing choice ``choice == 'matrix'`` on MoE expert
+    tensors. It is a Muon-style optimizer, not a PolarGrad-style optimizer:
 
-    if expert_layout == "gpt_oss_gate_up_pair":
-        E, d, two_r = orig_shape
-        r = two_r // 2
-        return u.view(E, r, d, 2).permute(0, 2, 1, 3).contiguous().view(orig_shape)
-
-    if expert_layout == "olmoe_gate_up_pair":
-        E, two_r, d = orig_shape
-        r = two_r // 2
-        z = u.view(E, r, d, 2)
-        gate = z[..., 0]
-        up = z[..., 1]
-        return torch.cat((gate, up), dim=1).contiguous().view(orig_shape)
-
-    raise ValueError(
-        f"Unknown expert_layout={expert_layout}. "
-        f"Expected one of {sorted(_SUPPORTED_EXPERT_LAYOUTS)}."
-    )
-
-
-class BatchedExpertMuon(torch.optim.Optimizer):
-    """Muon-style momentum polar optimizer for 3D MoE expert tensors.
-
-    This is the correct `choice == "matrix"` optimizer for MoE expert tensors.
-    It treats each expert as a separate matrix after applying `expert_layout`,
-    computes a batched polar/Muon update, and maps the update back to the
-    original tensor layout.
+      1. It does not use nuclear-norm scaling and has no ``alpha`` argument.
+      2. It uses momentum-first Polar Express orthogonalization.
+      3. For fused gate/up expert tensors, it polarizes gate and up branches
+         separately, matching ``MuonHeadsPolarExpress``.
 
     Supported expert layouts:
-      - "row":                 [E, rows, cols]
-      - "col":                 [E, cols, rows], optimized through transpose
-      - "gpt_oss_gate_up_pair": [E, d, 2*r] -> [E, r, 2*d]
-      - "olmoe_gate_up_pair":  [E, 2*r, d] -> [E, r, 2*d]
+      - ``row``: [E, rows, cols]
+      - ``col``: [E, cols, rows], optimized through transpose
+      - ``gpt_oss_gate_up_pair``: [E, hidden_size, 2 * intermediate_size]
+      - ``olmoe_gate_up_pair``: [E, 2 * intermediate_size, hidden_size]
     """
 
     def __init__(
@@ -106,10 +128,7 @@ class BatchedExpertMuon(torch.optim.Optimizer):
         lr: float = 1e-3,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
-        alpha: float = 1.0,
-        eps: float = 1e-8,
-        backend: str = "polar_express",
-        num_steps: int = 5,
+        nesterov: bool = True,
         expert_layout: str = "row",
     ):
         if expert_layout not in _SUPPORTED_EXPERT_LAYOUTS:
@@ -121,40 +140,10 @@ class BatchedExpertMuon(torch.optim.Optimizer):
             lr=lr,
             momentum=momentum,
             weight_decay=weight_decay,
-            alpha=alpha,
-            eps=eps,
-            backend=backend,
-            num_steps=num_steps,
+            nesterov=nesterov,
             expert_layout=expert_layout,
         )
         super().__init__(params, defaults)
-
-    @staticmethod
-    def _batched_polar(
-        x: torch.Tensor,
-        *,
-        eps: float,
-        backend: str,
-        num_steps: int,
-    ) -> torch.Tensor:
-        """Compute batched Muon/polar update on x with shape [E, m, n]."""
-        if x.ndim != 3:
-            raise ValueError(f"BatchedExpertMuon expects 3D expert tensors after orientation, got {tuple(x.shape)}")
-
-        m, n = x.shape[-2], x.shape[-1]
-        xf = x.float()
-
-        # Use the smaller Gram side per expert. Broadcasting handles [E, ...].
-        if m <= n:
-            gram = xf @ xf.transpose(-1, -2)
-            L = symmetric_matrix_invsqrt(gram, eps=eps, backend=backend, num_steps=num_steps)
-            u = L @ xf
-        else:
-            gram = xf.transpose(-1, -2) @ xf
-            R = symmetric_matrix_invsqrt(gram, eps=eps, backend=backend, num_steps=num_steps)
-            u = xf @ R
-
-        return u.to(dtype=x.dtype)
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -165,43 +154,43 @@ class BatchedExpertMuon(torch.optim.Optimizer):
 
         for group in self.param_groups:
             lr = group["lr"]
-            beta = group["momentum"]
-            wd = group["weight_decay"]
-            alpha = group["alpha"]
-            eps = group["eps"]
-            backend = group["backend"]
-            num_steps = group["num_steps"]
+            momentum = group["momentum"]
+            weight_decay = group["weight_decay"]
+            nesterov = group["nesterov"]
             expert_layout = group["expert_layout"]
 
             for p in group["params"]:
                 if p.grad is None:
                     continue
                 if p.grad.is_sparse:
-                    raise RuntimeError("BatchedExpertMuon does not support sparse gradients.")
+                    raise RuntimeError("BatchedExpertMuonPolarExpress does not support sparse gradients.")
                 if p.ndim != 3:
                     raise RuntimeError(
-                        f"BatchedExpertMuon expects 3D MoE expert tensors, got {tuple(p.shape)}"
+                        f"BatchedExpertMuonPolarExpress expects 3D MoE expert tensors, got {tuple(p.shape)}"
                     )
 
                 g = p.grad
                 state = self.state[p]
-                if "momentum" not in state:
-                    state["momentum"] = torch.zeros_like(p)
+                if "momentum_buffer" not in state:
+                    state["momentum_buffer"] = torch.zeros_like(g)
 
-                m_buf = state["momentum"]
-                m_buf.mul_(beta).add_(g, alpha=1.0 - beta)
+                buf = state["momentum_buffer"]
+                buf.mul_(momentum).add_(g)
+                if nesterov:
+                    update_src = g.add(buf, alpha=momentum)
+                else:
+                    update_src = buf
 
-                decoupled_weight_decay_(p, lr, wd)
+                scale = _muon_scale_for_expert_layout(update_src, expert_layout)
+                update = _polarize_expert_update_like_muon_heads(update_src, expert_layout)
+                update = update.mul(scale)
 
-                work = _expert_orient(m_buf, expert_layout)
-                u = self._batched_polar(work, eps=eps, backend=backend, num_steps=num_steps)
-
-                if alpha != 0:
-                    # Per-expert nuclear-style scaling.
-                    nu = (work.float() * u.float()).sum(dim=(-2, -1), keepdim=True).clamp_min(eps)
-                    u = u * nu.pow(alpha).to(dtype=u.dtype)
-
-                update = _expert_unorient(u, expert_layout, p.shape)
-                p.add_(update, alpha=-lr)
+                decoupled_weight_decay_(p, lr, weight_decay)
+                p.add_(update.to(dtype=p.dtype), alpha=-lr)
 
         return loss
+
+
+# Short aliases for convenience.
+BatchedExpertMuonPE = BatchedExpertMuonPolarExpress
+BatchExpertMuonPolarExpress = BatchedExpertMuonPolarExpress

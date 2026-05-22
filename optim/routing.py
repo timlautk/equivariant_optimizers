@@ -11,7 +11,7 @@ import torch.nn as nn
 # rownorm.py and hybrid.py.  Routing should not duplicate optimizer logic.
 from .rownorm import BatchedExpertRowNormM
 from .hybrid import BatchedExpertHybridPolarGradM, BatchedExpertHybridPolarGradM_GramNS
-from .muon_experts import BatchedExpertMuon
+from .muon_experts import BatchedExpertMuonPolarExpress
 
 
 # =========================
@@ -624,15 +624,12 @@ def build_transformer_mixed_optimizer(
             return _adamw_opt(lr, weight_decay)
         if choice == "matrix":
             return (
-                BatchedExpertMuon,
+                BatchedExpertMuonPolarExpress,
                 {
                     "lr": lr,
                     "momentum": beta,
                     "weight_decay": weight_decay,
-                    "alpha": alpha,
-                    "eps": eps,
-                    "backend": backend,
-                    "num_steps": num_steps,
+                    "nesterov": True,
                     "expert_layout": layout,
                 },
             )

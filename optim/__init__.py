@@ -41,7 +41,7 @@ from .routing import (
 )
 
 from .muon_heads import MuonHeadsPolarExpress
-from .muon_experts import BatchedExpertMuon
+from .muon_experts import BatchedExpertMuonPolarExpress
 
 
 __all__ = [
@@ -78,5 +78,5 @@ __all__ = [
     "build_gpt_oss_expert_configs",
 
     "MuonHeadsPolarExpress",
-    "BatchedExpertMuon",
+    "BatchedExpertMuonPolarExpress",
 ]
