@@ -11,6 +11,7 @@ import torch.nn as nn
 # rownorm.py and hybrid.py.  Routing should not duplicate optimizer logic.
 from .rownorm import BatchedExpertRowNormM
 from .hybrid import BatchedExpertHybridPolarGradM, BatchedExpertHybridPolarGradM_GramNS
+from .muon_experts import BatchedExpertMuon
 
 
 # =========================
@@ -622,9 +623,19 @@ def build_transformer_mixed_optimizer(
         if choice == "adamw":
             return _adamw_opt(lr, weight_decay)
         if choice == "matrix":
-            # The generic matrix optimizer usually expects 2D tensors. Use AdamW
-            # as a safe fallback unless you have a 3D-aware MatrixOptimizerCls.
-            return _adamw_opt(lr, weight_decay)
+            return (
+                BatchedExpertMuon,
+                {
+                    "lr": lr,
+                    "momentum": beta,
+                    "weight_decay": weight_decay,
+                    "alpha": alpha,
+                    "eps": eps,
+                    "backend": backend,
+                    "num_steps": num_steps,
+                    "expert_layout": layout,
+                },
+            )
         raise ValueError(f"Unknown MoE expert optimizer choice={choice}")
 
     mixed_cfg = MixedOptimizerConfig(
