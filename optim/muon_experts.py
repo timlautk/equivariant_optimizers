@@ -139,7 +139,7 @@ class BatchedExpertMuon(torch.optim.Optimizer):
     ) -> torch.Tensor:
         """Compute batched Muon/polar update on x with shape [E, m, n]."""
         if x.ndim != 3:
-            raise ValueError(f"BatchedExpertMuonM expects 3D expert tensors after orientation, got {tuple(x.shape)}")
+            raise ValueError(f"BatchedExpertMuon expects 3D expert tensors after orientation, got {tuple(x.shape)}")
 
         m, n = x.shape[-2], x.shape[-1]
         xf = x.float()
@@ -177,10 +177,10 @@ class BatchedExpertMuon(torch.optim.Optimizer):
                 if p.grad is None:
                     continue
                 if p.grad.is_sparse:
-                    raise RuntimeError("BatchedExpertMuonM does not support sparse gradients.")
+                    raise RuntimeError("BatchedExpertMuon does not support sparse gradients.")
                 if p.ndim != 3:
                     raise RuntimeError(
-                        f"BatchedExpertMuonM expects 3D MoE expert tensors, got {tuple(p.shape)}"
+                        f"BatchedExpertMuon expects 3D MoE expert tensors, got {tuple(p.shape)}"
                     )
 
                 g = p.grad
