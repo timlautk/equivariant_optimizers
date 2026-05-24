@@ -236,13 +236,11 @@ def maybe_reinit_for_lm(module: nn.Module, std: float = 0.02):
     """
     if isinstance(module, nn.Embedding):
         nn.init.normal_(module.weight, mean=0.0, std=std)
-        # nn.init.trunc_normal_(module.weight, mean=0.0, std=std, a=-3*std, b=3*std)
         if module.padding_idx is not None:
             with torch.no_grad():
                 module.weight[module.padding_idx].zero_()
     elif isinstance(module, nn.Linear):
         nn.init.normal_(module.weight, mean=0.0, std=std)
-        # nn.init.trunc_normal_(module.weight, mean=0.0, std=std, a=-3*std, b=3*std)
         if module.bias is not None:
             nn.init.zeros_(module.bias)
     elif isinstance(module, nn.LayerNorm):
