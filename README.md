@@ -95,7 +95,7 @@ Figure 3 in paper shows the training curves for the Qwen3-0.6B-style pre-trainin
 
 ```bash
 ## RowNormM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --embed_optimizer=row --lm_head_optimizer=row --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
@@ -105,7 +105,7 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## HybridPolarGradM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --embed_optimizer=hybrid --lm_head_optimizer=hybrid --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
@@ -115,7 +115,7 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## AdamW for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --lm_head_optimizer=adamw --embed_optimizer=adamw --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
@@ -125,7 +125,7 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 
 
 ## RowNormM for embedding and LM head, Muon for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --embed_optimizer=row --lm_head_optimizer=row --mlp_up_gate_optimizer=matrix \
 --mlp_down_optimizer=matrix \
@@ -135,7 +135,7 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## HybridPolarGradM for embedding and LM head, Muon for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --embed_optimizer=hybrid --lm_head_optimizer=hybrid --mlp_up_gate_optimizer=matrix \
 --mlp_down_optimizer=matrix \
@@ -145,7 +145,7 @@ torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=finewe
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## AdamW for embedding and LM head, Muon for MLP up and down projections. 
-torchrun --standalone --nproc_per_node=8 train_qwen3_swiglu.py --data_dir=fineweb_edu_10B_Qwen3 \
+torchrun --standalone --nproc_per_node=8 train_qwen3.py --data_dir=fineweb_edu_10B_Qwen3 \
 --num_hidden_layers=20 --device_batch_size=28 --seq_len=1024 \
 --lm_head_optimizer=adamw --embed_optimizer=adamw --mlp_up_gate_optimizer=matrix \
 --mlp_down_optimizer=matrix \
@@ -166,7 +166,7 @@ Part of Figure 4 in paper
 
 ```bash
 ## RowNormM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fineweb_edu_10B_gemma3 \
+torchrun --standalone --nproc_per_node=8 train_gemma3_1b.py --data_dir=fineweb_edu_10B_gemma3 \
 --num_hidden_layers=18 --device_batch_size=18 --seq_len=1024 \
 --embed_optimizer=row --lm_head_optimizer=row --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
@@ -176,7 +176,7 @@ torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fi
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## HybridPolarGradM for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fineweb_edu_10B_gemma3 \
+torchrun --standalone --nproc_per_node=8 train_gemma3_1b.py --data_dir=fineweb_edu_10B_gemma3 \
 --num_hidden_layers=18 --device_batch_size=18 --seq_len=1024 \
 --embed_optimizer=hybrid --lm_head_optimizer=hybrid --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
@@ -186,7 +186,7 @@ torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fi
 --inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42
 
 ## AdamW for embedding and LM head, HybridPolarGradM for MLP up and down projections.
-torchrun --standalone --nproc_per_node=8 train_gemma3_1b_swiglu.py --data_dir=fineweb_edu_10B_gemma3 \
+torchrun --standalone --nproc_per_node=8 train_gemma3_1b.py --data_dir=fineweb_edu_10B_gemma3 \
 --num_hidden_layers=18 --device_batch_size=18 --seq_len=1024 \
 --lm_head_optimizer=adamw --embed_optimizer=adamw --mlp_up_gate_optimizer=hybrid \
 --mlp_down_optimizer=hybrid \
