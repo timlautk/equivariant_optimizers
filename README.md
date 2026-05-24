@@ -311,7 +311,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss.py --data_dir=fineweb_edu
 
 ```bash
 ## RowNormM for embedding, LM head and router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=row \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -322,7 +322,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True
 
 ## RowNormM for embedding and LM head, LeftPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -333,7 +333,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True
 
 ## RowNormM for embedding and LM head, uncentered LeftPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left_uncentered \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -344,7 +344,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True
 
 ## RowNormM for embedding and LM head, HybridPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=hybrid \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -355,7 +355,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True
 
 ## RowNormM for embedding and LM head, AdamW for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=adamw \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -370,7 +370,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 
 ```bash
 ## RowNormM for embedding, LM head and router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=row \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -381,7 +381,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
 
 ## RowNormM for embedding and LM head, LeftPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -392,7 +392,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
 
 ## RowNormM for embedding and LM head, uncentered LeftPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left_uncentered \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -403,7 +403,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
 
 ## RowNormM for embedding and LM head, HybridPolarGradM for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=hybrid \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
@@ -414,7 +414,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py 
 --router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
 
 ## RowNormM for embedding and LM head, AdamW for router.
-torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
 --num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
 --embed_optimizer=row --lm_head_optimizer=row --router_optimizer=adamw \
 --lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
