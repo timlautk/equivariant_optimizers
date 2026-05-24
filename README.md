@@ -306,6 +306,125 @@ torchrun --standalone --nproc_per_node=8 train_gpt-oss.py --data_dir=fineweb_edu
 --inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False
 ```
 
+#### Load-Balancing Loss and Router z-Loss Diagnostics
+##### Without auxiliary losses
+
+```bash
+## RowNormM for embedding, LM head and router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=row \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True
+
+## RowNormM for embedding and LM head, LeftPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True
+
+## RowNormM for embedding and LM head, uncentered LeftPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left_uncentered \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True
+
+## RowNormM for embedding and LM head, HybridPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=hybrid \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True
+
+## RowNormM for embedding and LM head, AdamW for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=adamw \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True
+```
+
+##### With auxiliary load-balancing losses and router z-losses
+
+```bash
+## RowNormM for embedding, LM head and router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=row \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
+
+## RowNormM for embedding and LM head, LeftPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
+
+## RowNormM for embedding and LM head, uncentered LeftPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=left_uncentered \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
+
+## RowNormM for embedding and LM head, HybridPolarGradM for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=hybrid \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 --beta_router=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --alpha=1.0 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
+
+## RowNormM for embedding and LM head, AdamW for router.
+torchrun --standalone --nproc_per_node=8 train_gpt-oss_router_expert_metrics.py --data_dir=fineweb_edu_10B_gpt-oss \
+--num_hidden_layers=12 --hidden_size=2048 --device_batch_size=8 --seq_len=1024 --num_experts=16 \
+--embed_optimizer=row --lm_head_optimizer=row --router_optimizer=adamw \
+--lr=5e-3 --lr_muon=1e-3 --lr_embed=1e-1 --lr_lm_head=1e-3 --lr_router=7.5e-4 \
+--beta_embed=0.95 --beta_lm_head=0.95 \
+--train_steps=60_000 --val_loss_every=500 --val_tokens=10_485_760 \
+--inner_steps=5 --eps=1e-8 --tensorboard=True --seed=42 --compile=False \
+--log_router_metrics=True --router_metrics_every=500 --router_metrics_per_layer=True \
+--router_metrics_save_npz=True --router_aux_loss_coef=1e-2 --router_z_loss_coef=1e-3
+```
+
 
 ## Citation
 If you find this repository useful for your research, please consider citing our paper using the BibTeX entry below:
