@@ -455,7 +455,7 @@ def build_transformer_mixed_optimizer(
         accepted = inspect.signature(optimizer_cls.__init__).parameters
         return {k: v for k, v in kwargs.items() if k in accepted}
 
-    def _right_opt_kwargs(lr: float, beta: float, weight_decay: float) -> Dict[str, Any]:
+    def _right_opt_kwargs(lr: float, beta: float, weight_decay: float, *, center_rows: bool = False) -> Dict[str, Any]:
         kwargs = {
             "lr": lr,
             "beta": beta,
@@ -464,6 +464,10 @@ def build_transformer_mixed_optimizer(
             "weight_decay": weight_decay,
             "backend": backend,
             "num_steps": num_steps,
+            # Used by horizontal LM-head/right-spectral implementations when
+            # supported by RightPolarGradM. Silently dropped by _filter_kwargs
+            # for older RightPolarGradM implementations.
+            "center_rows": center_rows,
         }
         kwargs.update(right_optimizer_kwargs)
         return _filter_kwargs(RightPolarGradM, kwargs)
@@ -522,17 +526,17 @@ def build_transformer_mixed_optimizer(
 
     def _lm_head_opt():
         if lm_head_optimizer == "right":
-            return (RightPolarGradM, _right_opt_kwargs(lr_lm_head, beta_lm_head, wd_lm_head))
+            return (RightPolarGradM, _right_opt_kwargs(lr_lm_head, beta_lm_head, wd_lm_head, center_rows=True))
         if lm_head_optimizer == "row":
             return (
                 RowNormM,
                 {"lr": lr_lm_head, "beta": beta_lm_head, "weight_decay": wd_lm_head,
-                 "row_mode": row_mode, "eps": eps, "center_rows": False, "orientation": "row"},
+                 "row_mode": row_mode, "eps": eps, "center_rows": True, "orientation": "row"},
             )
         if lm_head_optimizer == "hybrid":
             return (
                 HybridPolarGradM,
-                _hybrid_opt_kwargs(lr_lm_head, beta_lm_head, wd_lm_head, left=False, center_rows=False, order=lm_head_hybrid_order),
+                _hybrid_opt_kwargs(lr_lm_head, beta_lm_head, wd_lm_head, left=False, center_rows=True, order=lm_head_hybrid_order),
             )
         if lm_head_optimizer == "adamw":
             return _adamw_opt(lr_lm_head, wd_lm_head)
@@ -696,9 +700,3 @@ def build_olmoe_expert_configs(model: nn.Module) -> Dict[str, Dict[str, Any]]:
 
 def build_gpt_oss_expert_configs(model: nn.Module) -> Dict[str, Dict[str, Any]]:
     return {}
-
-
-# =========================
-# Vision builder placeholder/import compatibility
-# =========================
-# Keep your existing build_vision_mixed_optimizer below this point if needed.

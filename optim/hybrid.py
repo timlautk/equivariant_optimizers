@@ -227,6 +227,11 @@ class HybridPolarGradM(Optimizer):
 
         elif order == "row_then_polar":
             work_row = _apply_row_scaling_batched(work, mode=row_mode, eps=eps)
+            # Rowwise scaling can leave the centered quotient subspace. Project
+            # before the polar step so the Gram/polar computation sees the
+            # horizontal direction.
+            if center_rows:
+                work_row = _center_rows(work_row)
             u = self._polarize(work_row, left=left, eps=eps, backend=backend, num_steps=num_steps)
             if alpha != 0:
                 nu = torch.sum(work_row.float() * u.float())
@@ -238,6 +243,11 @@ class HybridPolarGradM(Optimizer):
         else:
             raise ValueError(f"Unsupported order={order}")
 
+        # Final projection is essential for row-norm/hybrid updates on LM-head
+        # and router quotient geometries: rowwise nonlinear scaling can
+        # reintroduce a shared-row component even if the input was centered.
+        if center_rows:
+            update_work = _center_rows(update_work)
         return _unorient(update_work, orientation, orig_shape)
 
     @torch.no_grad()
@@ -307,10 +317,12 @@ _unmodified_polar_express_coeffs_list = [
 ]
 
 safety_factor = 1.05
+
 coeffs_list = [
     (a / safety_factor, b / safety_factor**3, c / safety_factor**5)
     for (a, b, c) in _unmodified_polar_express_coeffs_list[:-1]
 ]
+
 coeffs_list.append(_unmodified_polar_express_coeffs_list[-1])
 
 
@@ -419,6 +431,8 @@ class HybridPolarGradM_GramNS(Optimizer):
 
         elif order == "row_then_polar":
             work_row = _apply_row_scaling_batched(work, mode=row_mode, eps=eps)
+            if center_rows:
+                work_row = _center_rows(work_row)
             u = self.orthogonalizer(work_row)
             if alpha != 0:
                 nu = torch.sum(work_row.float() * u.float())
@@ -430,6 +444,8 @@ class HybridPolarGradM_GramNS(Optimizer):
         else:
             raise ValueError(f"Unsupported order={order}")
 
+        if center_rows:
+            update_work = _center_rows(update_work)
         return _unorient(update_work, orientation, orig_shape)
 
     @torch.no_grad()

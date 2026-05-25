@@ -82,6 +82,12 @@ class LeftPolarGradM(Optimizer):
                     scale = 1.0
 
                 update = scale * (L @ m_eff)
+                # For router quotient geometry, keep the actual update in the
+                # centered expert subspace. This is redundant in exact
+                # arithmetic for the left-spectral map, but protects against
+                # numerical/inexact inverse-square-root errors.
+                if center_rows:
+                    update = update - update.mean(dim=0, keepdim=True)
                 p.add_(update, alpha=-lr)
 
         return loss

@@ -15,6 +15,11 @@ from .invsqrt import symmetric_matrix_invsqrt
 from .utils import decoupled_weight_decay_, is_matrix_param
 
 
+def _center_rows(x: torch.Tensor) -> torch.Tensor:
+    """Project a 2D matrix onto the zero-row-mean subspace: Pi_perp x."""
+    return x - x.mean(dim=0, keepdim=True)
+
+
 class RightPolarGradM(Optimizer):
     def __init__(
         self,
@@ -26,6 +31,7 @@ class RightPolarGradM(Optimizer):
         weight_decay: float = 0.0,
         backend: str = "polar_express",
         num_steps: int = 5,
+        center_rows: bool = False,
     ):
         defaults = dict(
             lr=lr,
@@ -35,6 +41,7 @@ class RightPolarGradM(Optimizer):
             weight_decay=weight_decay,
             backend=backend,
             num_steps=num_steps,
+            center_rows=center_rows,
         )
         super().__init__(params, defaults)
 
@@ -53,6 +60,7 @@ class RightPolarGradM(Optimizer):
             wd = group["weight_decay"]
             backend = group["backend"]
             num_steps = group["num_steps"]
+            center_rows = group["center_rows"]
 
             for p in group["params"]:
                 if p.grad is None:
@@ -71,19 +79,33 @@ class RightPolarGradM(Optimizer):
                 m = state["momentum"]
                 m.mul_(beta).add_(g, alpha=1.0 - beta)
 
+                # For LM heads, remove the shared-vocabulary-logit-shift direction
+                # before forming the right Gram matrix.
+                m_eff = _center_rows(m) if center_rows else m
+
                 decoupled_weight_decay_(p, lr, wd)
 
-                C = m.transpose(-1, -2) @ m
+                C = m_eff.transpose(-1, -2) @ m_eff
                 R = symmetric_matrix_invsqrt(C, eps=eps, backend=backend, num_steps=num_steps)
 
-                # nu = tr(C R) = <m, mR>
+                u = m_eff @ R
+
+                # nu = tr(C R) = <m_eff, m_eff R>
                 if alpha != 0:
-                    nu = torch.sum(C @ R)
+                    # C and R are symmetric in exact arithmetic, but use trace for
+                    # the intended nuclear-norm surrogate rather than sum(C @ R).
+                    nu = torch.trace(C @ R)
                     scale = nu.clamp_min(eps).pow(alpha)
                 else:
                     scale = 1.0
 
-                update = scale * (m @ R)
+                update = scale * u
+
+                # In exact arithmetic, right multiplication preserves centering.
+                # Re-project for numerical robustness when center_rows=True.
+                if center_rows:
+                    update = _center_rows(update)
+
                 p.add_(update, alpha=-lr)
 
         return loss
@@ -100,9 +122,11 @@ _unmodified_polar_express_coeffs_list = [
     (1.875, -1.25, 0.375),  # subsequent coeffs equal this numerically
 ]
 safety_factor = 1.05
-# safety factor for numerical stability ( but exclude last polynomial )
-coeffs_list = [(a / safety_factor, b / safety_factor**3, c / safety_factor**5) 
-                for (a, b, c) in _unmodified_polar_express_coeffs_list[:-1]]
+# safety factor for numerical stability (but exclude last polynomial)
+coeffs_list = [
+    (a / safety_factor, b / safety_factor**3, c / safety_factor**5)
+    for (a, b, c) in _unmodified_polar_express_coeffs_list[:-1]
+]
 coeffs_list.append(_unmodified_polar_express_coeffs_list[-1])
 
 
@@ -121,6 +145,7 @@ class RightPolarGradM_GramNS(Optimizer):
     - This is especially natural for tall-skinny matrices such as embeddings / LM heads.
     - The GramNewtonSchulz implementation already returns an orthogonalized matrix
       with the same shape as the input, so we do not explicitly form m^T m here.
+    - For LM heads, set center_rows=True to remove the shared-logit-shift direction.
     - For exact mathematical correctness on fused matrices, split them before calling
       the orthogonalizer.
     """
@@ -141,6 +166,7 @@ class RightPolarGradM_GramNS(Optimizer):
         num_steps: int = 5,
         compile_kwargs=None,
         filter_fn: Optional[Callable[[torch.nn.Parameter], bool]] = None,
+        center_rows: bool = False,
     ):
         if GramNewtonSchulz is None:
             raise ImportError(
@@ -155,11 +181,14 @@ class RightPolarGradM_GramNS(Optimizer):
             eps=eps,
             weight_decay=weight_decay,
             num_steps=num_steps,
+            center_rows=center_rows,
         )
         super().__init__(params, defaults)
 
         if ns_coefficients is None:
-            ns_coefficients = coeffs_list[:num_steps] + list(repeat(coeffs_list[-1], num_steps - len(coeffs_list)))
+            ns_coefficients = coeffs_list[:num_steps] + list(
+                repeat(coeffs_list[-1], max(0, num_steps - len(coeffs_list)))
+            )
 
         self.orthogonalizer = GramNewtonSchulz(
             ns_epsilon=ns_epsilon,
@@ -184,6 +213,7 @@ class RightPolarGradM_GramNS(Optimizer):
             alpha = group["alpha"]
             eps = group["eps"]
             weight_decay = group["weight_decay"]
+            center_rows = group["center_rows"]
 
             for p in group["params"]:
                 if p.grad is None:
@@ -206,18 +236,26 @@ class RightPolarGradM_GramNS(Optimizer):
                 m = state["momentum"]
                 m.mul_(beta).add_(g, alpha=1.0 - beta)
 
+                m_eff = _center_rows(m) if center_rows else m
+
                 decoupled_weight_decay_(p, lr, weight_decay)
 
-                u = self.orthogonalizer(m)
+                u = self.orthogonalizer(m_eff)
 
-                # Nuclear-norm surrogate scaling: <m, polar(m)>
+                # Nuclear-norm surrogate scaling: <m_eff, polar(m_eff)>.
                 if alpha != 0:
-                    nu = torch.sum(m * u)
+                    nu = torch.sum(m_eff * u)
                     scale = nu.clamp_min(eps).pow(alpha)
                 else:
                     scale = 1.0
 
                 update = scale * u
+
+                # In exact arithmetic, the orthogonalizer should preserve the
+                # centered row subspace. Re-project for numerical robustness.
+                if center_rows:
+                    update = _center_rows(update)
+
                 p.add_(update, alpha=-lr)
 
         return loss

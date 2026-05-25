@@ -192,6 +192,12 @@ class RowNormM(Optimizer):
         if center_rows:
             work = _center_rows(work)
         update_work = _apply_row_scaling_batched(work, mode=row_mode, eps=eps)
+        # If center_rows=True, this optimizer is being used on a quotient
+        # geometry such as an untied LM head or an MoE router. Rowwise scaling
+        # can reintroduce a shared-row component, so project the *final* update
+        # back to the horizontal subspace.
+        if center_rows:
+            update_work = _center_rows(update_work)
         return _unorient(update_work, orientation, orig_shape)
 
     @torch.no_grad()
