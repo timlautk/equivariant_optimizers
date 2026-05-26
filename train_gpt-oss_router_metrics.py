@@ -957,6 +957,10 @@ if __name__ == "__main__":
             and "lm_head" not in name
             and "experts.gate_up_proj" not in name
             and "experts.down_proj" not in name
+            and ".gate." not in name
+            and ".router." not in name
+            and not name.endswith("gate.weight")
+            and not name.endswith("router.weight")
         )
     ]
 
